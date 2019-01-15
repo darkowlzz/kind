@@ -171,7 +171,7 @@ func (n *Node) FixMounts() error {
 	// https://www.freedesktop.org/wiki/Software/systemd/ContainerInterface/
 	// however, we need other things from `docker run --privileged` ...
 	// and this flag also happens to make /sys rw, amongst other things
-	if err := n.Command("mount", "-o", "remount,ro", "/sys").Run(); err != nil {
+	if err := n.Command("mount", "--make-shared", "/sys").Run(); err != nil {
 		return err
 	}
 	// kubernetes needs shared mount propagation
