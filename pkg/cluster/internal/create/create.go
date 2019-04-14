@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/internal/create/actions/kubeadminit"
 	"sigs.k8s.io/kind/pkg/cluster/internal/create/actions/kubeadmjoin"
 	"sigs.k8s.io/kind/pkg/cluster/internal/create/actions/loadbalancer"
+	"sigs.k8s.io/kind/pkg/cluster/internal/create/actions/storageos"
 	"sigs.k8s.io/kind/pkg/cluster/internal/create/actions/waitforready"
 )
 
@@ -87,6 +88,7 @@ func Cluster(ctx *context.Context, cfg *config.Cluster, opts *Options) error {
 			kubeadminit.NewAction(),                   // run kubeadm init
 			kubeadmjoin.NewAction(),                   // run kubeadm join
 			waitforready.NewAction(opts.WaitForReady), // wait for cluster readiness
+			storageos.NewAction(),                     // install storageos
 		)
 	}
 

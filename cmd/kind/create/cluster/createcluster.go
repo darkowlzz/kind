@@ -55,7 +55,7 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&flags.Config, "config", "", "path to a kind config file")
 	cmd.Flags().StringVar(&flags.ImageName, "image", "", "node docker image to use for booting the cluster")
 	cmd.Flags().BoolVar(&flags.Retain, "retain", false, "retain nodes for debugging when cluster creation fails")
-	cmd.Flags().DurationVar(&flags.Wait, "wait", time.Duration(0), "Wait for control plane node to be ready (default 0s)")
+	cmd.Flags().DurationVar(&flags.Wait, "wait", 240*time.Second, "Wait for control plane node to be ready (default 0s)")
 	return cmd
 }
 
