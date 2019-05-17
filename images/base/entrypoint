@@ -41,7 +41,8 @@ fix_mount() {
   # https://www.freedesktop.org/wiki/Software/systemd/ContainerInterface/
   # however, we need other things from `docker run --privileged` ...
   # and this flag also happens to make /sys rw, amongst other things
-  mount -o remount,ro /sys
+  # mount -o remount,ro /sys
+  mount --make-shared /sys
 
   # for mount propagation
   # TODO(bentheelder): determine which exact mounts we need to do this on

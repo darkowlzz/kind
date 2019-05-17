@@ -104,7 +104,7 @@ func (c *BuildContext) Build() (err error) {
 
 func (c *BuildContext) buildImage(dir string) error {
 	// build the image, tagged as tagImageAs, using the our tempdir as the context
-	cmd := exec.Command("docker", "build", "-t", c.image, dir)
+	cmd := exec.Command("docker", "build", "--no-cache", "-t", c.image, dir)
 	log.Info("Starting Docker build ...")
 	exec.InheritOutput(cmd)
 	err := cmd.Run()
