@@ -38,6 +38,7 @@ type BuildContext struct {
 	sourceDir string
 	image     string
 	logger    log.Logger
+	ignite    bool
 }
 
 // Option is BuildContext configuration option supplied to NewBuildContext
@@ -57,6 +58,13 @@ func WithImage(image string) Option {
 	}
 }
 
+// WithIgnite configures a NewBuildContext to build a base image for ignite.
+func WithIgnite(ignite bool) Option {
+	return func(b *BuildContext) {
+		b.ignite = ignite
+	}
+}
+
 // WithLogger configures a NewBuildContext to log using logger
 func WithLogger(logger log.Logger) Option {
 	return func(b *BuildContext) {
@@ -70,6 +78,7 @@ func NewBuildContext(options ...Option) *BuildContext {
 	ctx := &BuildContext{
 		image:  DefaultImage,
 		logger: log.NoopLogger{},
+		ignite: false,
 	}
 	for _, option := range options {
 		option(ctx)
@@ -90,18 +99,30 @@ func (c *BuildContext) Build() (err error) {
 	// populate with image sources
 	// if SourceDir is unset then try to autodetect source dir
 	buildDir := tmpDir
+	igniteDockerfile := ""
 	if c.sourceDir == "" {
 		pkg, err := build.Default.Import("sigs.k8s.io/kind", build.Default.GOPATH, build.FindOnly)
 		if err != nil {
 			return errors.Wrap(err, "failed to locate sources")
 		}
 		c.sourceDir = filepath.Join(pkg.Dir, "images", "base")
+		// Dockerfile for ignite base.
+		igniteDockerfile = filepath.Join(pkg.Dir, "images", "base-ignite", "Dockerfile")
 	}
 
 	err = fs.Copy(c.sourceDir, buildDir)
 	if err != nil {
 		c.logger.Errorf("failed to copy sources to build dir %v", err)
 		return err
+	}
+
+	if c.ignite && igniteDockerfile != "" {
+		c.logger.V(0).Infof("Using base for ignite!!!")
+		err = fs.Copy(igniteDockerfile, filepath.Join(buildDir, "Dockerfile"))
+		if err != nil {
+			c.logger.Errorf("failed to copy ignite Dockerfile to build dir %v", err)
+			return err
+		}
 	}
 
 	c.logger.V(0).Infof("Building base image in: %s", buildDir)
@@ -112,7 +133,7 @@ func (c *BuildContext) Build() (err error) {
 
 func (c *BuildContext) buildImage(dir string) error {
 	// build the image, tagged as tagImageAs, using the our tempdir as the context
-	cmd := exec.Command("docker", "build", "-t", c.image, dir)
+	cmd := exec.Command("docker", "build", "--no-cache", "-t", c.image, dir)
 	c.logger.V(0).Info("Starting Docker build ...")
 	exec.InheritOutput(cmd)
 	err := cmd.Run()

@@ -28,6 +28,7 @@ import (
 type flagpole struct {
 	Source string
 	Image  string
+	Ignite bool
 }
 
 // NewCommand returns a new cobra.Command for building the base image
@@ -53,6 +54,11 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 		base.DefaultImage,
 		"name:tag of the resulting image to be built",
 	)
+	cmd.Flags().BoolVar(
+		&flags.Ignite, "ignite",
+		false,
+		"build an ignite base image",
+	)
 	return cmd
 }
 
@@ -62,6 +68,7 @@ func runE(logger log.Logger, flags *flagpole) error {
 		base.WithImage(flags.Image),
 		base.WithSourceDir(flags.Source),
 		base.WithLogger(logger),
+		base.WithIgnite(flags.Ignite),
 	)
 	if err := ctx.Build(); err != nil {
 		return errors.Wrap(err, "build failed")

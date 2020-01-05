@@ -122,6 +122,52 @@ func (cmd *LocalCmd) Run() error {
 	return nil
 }
 
+// Start starts the command and does not waits for it to complete.
+func (cmd *LocalCmd) Start() error {
+	var combinedOutput bytes.Buffer
+	var combinedOutputWriter io.Writer = &combinedOutput
+	if cmd.Stdout == nil && cmd.Stderr == nil {
+		// Case 1: If stdout and stderr are nil, we can just use the buffer
+		// The buffer will be == and Go will use one fd / goroutine
+		cmd.Stdout = combinedOutputWriter
+		cmd.Stderr = combinedOutputWriter
+	} else if interfaceEqual(cmd.Stdout, cmd.Stderr) {
+		// Case 2: If cmd.Stdout == cmd.Stderr go will still share the fd,
+		// but we need to wrap with a MultiWriter to respect the other writer
+		// and our buffer.
+		// The MultiWriter will be == and Go will use one fd / goroutine
+		cmd.Stdout = io.MultiWriter(cmd.Stdout, combinedOutputWriter)
+		cmd.Stderr = cmd.Stdout
+	} else {
+		// Case 3: If cmd.Stdout != cmd.Stderr, we need to synchronize the
+		// combined output writer.
+		// Go will use different fds / write routines for stdout and stderr
+		combinedOutputWriter = &mutexWriter{
+			writer: &combinedOutput,
+		}
+		// wrap writers if non-nil
+		if cmd.Stdout != nil {
+			cmd.Stdout = io.MultiWriter(cmd.Stdout, combinedOutputWriter)
+		} else {
+			cmd.Stdout = combinedOutputWriter
+		}
+		if cmd.Stderr != nil {
+			cmd.Stderr = io.MultiWriter(cmd.Stderr, combinedOutputWriter)
+		} else {
+			cmd.Stderr = combinedOutputWriter
+		}
+	}
+
+	if err := cmd.Cmd.Start(); err != nil {
+		return errors.WithStack(&RunError{
+			Command: cmd.Args,
+			Output:  combinedOutput.Bytes(),
+			Inner:   err,
+		})
+	}
+	return nil
+}
+
 // interfaceEqual protects against panics from doing equality tests on
 // two interfaces with non-comparable underlying types.
 // This trivial is borrowed from the go stdlib in os/exec

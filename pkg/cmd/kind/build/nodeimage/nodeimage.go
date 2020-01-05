@@ -31,6 +31,7 @@ type flagpole struct {
 	Image     string
 	BaseImage string
 	KubeRoot  string
+	Ignite    bool
 }
 
 // NewCommand returns a new cobra.Command for building the node image
@@ -65,6 +66,11 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 		node.DefaultBaseImage,
 		"name:tag of the base image to use for the build",
 	)
+	cmd.Flags().BoolVar(
+		&flags.Ignite, "ignite",
+		false,
+		"build an ignite node image",
+	)
 	return cmd
 }
 
@@ -75,6 +81,7 @@ func runE(logger log.Logger, flags *flagpole) error {
 		node.WithImage(flags.Image),
 		node.WithBaseImage(flags.BaseImage),
 		node.WithKuberoot(flags.KubeRoot),
+		node.WithIgnite(flags.Ignite),
 		node.WithLogger(logger),
 	)
 	if err != nil {

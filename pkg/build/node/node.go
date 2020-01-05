@@ -79,6 +79,13 @@ func WithKuberoot(root string) Option {
 	}
 }
 
+// WithIgnite configures a NewBuildContext to create a node image for ignite.
+func WithIgnite(ignite bool) Option {
+	return func(b *BuildContext) {
+		b.ignite = ignite
+	}
+}
+
 // WithLogger sets the logger
 func WithLogger(logger log.Logger) Option {
 	return func(b *BuildContext) {
@@ -98,6 +105,7 @@ type BuildContext struct {
 	arch     string // TODO(bentheelder): this should be an option
 	kubeRoot string
 	bits     kube.Bits
+	ignite   bool
 }
 
 // NewBuildContext creates a new BuildContext with default configuration,
@@ -108,6 +116,7 @@ func NewBuildContext(options ...Option) (ctx *BuildContext, err error) {
 		mode:      DefaultMode,
 		image:     DefaultImage,
 		baseImage: DefaultBaseImage,
+		ignite:    false,
 		logger:    log.NoopLogger{},
 		// TODO: only host arch supported. changing this will be tricky
 		arch: runtime.GOARCH,
@@ -166,7 +175,7 @@ func (c *BuildContext) Build() (err error) {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(buildDir)
+	// defer os.RemoveAll(buildDir)
 
 	c.logger.V(0).Infof("Building node image in: %s", buildDir)
 
@@ -325,6 +334,17 @@ func (c *BuildContext) buildImage(dir string) error {
 		return err
 	}
 
+	// For ignite node image, run containerd explicitly. This is needed because
+	// ignite base image doesn't enables systemd by default and containerd needs
+	// to be started manually before importing the images.
+	if c.ignite {
+		c.logger.V(0).Infof("STARTING CONTAINERD FOR IGNITE!!!!")
+		if err = cmder.Command("/usr/local/bin/containerd").Start(); err != nil {
+			c.logger.Errorf("Failed to start containerd: %v", err)
+			return errors.Wrap(err, "failed to start containerd")
+		}
+	}
+
 	// pre-pull images that were not part of the build
 	if err = c.prePullImages(dir, containerID); err != nil {
 		c.logger.Errorf("Image build Failed! Failed to pull Images: %v", err)
@@ -332,12 +352,23 @@ func (c *BuildContext) buildImage(dir string) error {
 	}
 
 	// Save the image changes to a new image
-	cmd := exec.Command(
-		"docker", "commit",
-		// we need to put this back after changing it when running the image
-		"--change", `ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]`,
-		containerID, c.image,
-	)
+	var cmd exec.Cmd
+	if c.ignite {
+		c.logger.V(0).Infof("DOCKER COMMITTING FOR IGNITE NODE!!")
+		// Do not add any changes for ignite node.
+		cmd = exec.Command(
+			"docker", "commit",
+			containerID, c.image,
+		)
+	} else {
+		cmd = exec.Command(
+			"docker", "commit",
+			// we need to put this back after changing it when running the image
+			"--change", `ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]`,
+			containerID, c.image,
+		)
+	}
+
 	exec.InheritOutput(cmd)
 	if err = cmd.Run(); err != nil {
 		c.logger.Errorf("Image build Failed! Failed to save image: %v", err)

@@ -26,6 +26,9 @@ type Cmd interface {
 	// Run executes the command (like os/exec.Cmd.Run), it should return
 	// a *RunError if there is any error
 	Run() error
+	// Start executes the command (like os/exec.Cmd.Start). It doesn't wait for
+	// it to complete.
+	Start() error
 	// Each entry should be of the form "key=value"
 	SetEnv(...string) Cmd
 	SetStdin(io.Reader) Cmd
