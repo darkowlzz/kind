@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/internal/kubeconfig"
 	internallogs "sigs.k8s.io/kind/pkg/cluster/internal/logs"
 	"sigs.k8s.io/kind/pkg/cluster/internal/providers/docker"
+	"sigs.k8s.io/kind/pkg/cluster/internal/providers/ignite"
 	internalprovider "sigs.k8s.io/kind/pkg/cluster/internal/providers/provider"
 )
 
@@ -39,6 +40,7 @@ const DefaultName = constants.DefaultClusterName
 type Provider struct {
 	provider internalprovider.Provider
 	logger   log.Logger
+	ignite   bool
 }
 
 // NewProvider returns a new provider based on the supplied options
@@ -58,7 +60,11 @@ func NewProvider(options ...ProviderOption) *Provider {
 		o.apply(p)
 	}
 	if p.provider == nil {
-		p.provider = docker.NewProvider(p.logger)
+		if p.ignite {
+			p.provider = ignite.NewProvider(p.logger)
+		} else {
+			p.provider = docker.NewProvider(p.logger)
+		}
 	}
 	return p
 }
@@ -80,6 +86,19 @@ func (a providerLoggerOption) apply(p *Provider) {
 func ProviderWithLogger(logger log.Logger) ProviderOption {
 	return providerLoggerOption(func(p *Provider) {
 		p.logger = logger
+	})
+}
+
+type providerIgniteOption func(p *Provider)
+
+func (a providerIgniteOption) apply(p *Provider) {
+	a(p)
+}
+
+// ProviderWithIgnite configures the provider to use ignite.
+func ProviderWithIgnite(ignite bool) ProviderOption {
+	return providerIgniteOption(func(p *Provider) {
+		p.ignite = ignite
 	})
 }
 

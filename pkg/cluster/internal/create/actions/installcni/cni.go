@@ -83,12 +83,22 @@ func (a *action) Execute(ctx *actions.ActionContext) error {
 		manifest = out.String()
 	}
 
+	// Copy the templated CNI manifest to the node.
+	if err := node.Command("cp", "/dev/stdin", "/kind/manifests/default-cni.yaml").SetStdin(strings.NewReader(manifest)).Run(); err != nil {
+		return errors.Wrap(err, "failed to write templated CNI manifest")
+	}
+
 	// install the manifest
+	// if err := node.Command(
+	// 	"kubectl", "create", "--kubeconfig=/etc/kubernetes/admin.conf",
+	// 	"-f", "-",
+	// ).SetStdin(strings.NewReader(manifest)).Run(); err != nil {
+	// 	return errors.Wrap(err, "failed to apply overlay network")
+	// }
 	if err := node.Command(
 		"kubectl", "create", "--kubeconfig=/etc/kubernetes/admin.conf",
-		"-f", "-",
-	).SetStdin(strings.NewReader(manifest)).Run(); err != nil {
-		return errors.Wrap(err, "failed to apply overlay network")
+		"-f", "/kind/manifests/default-cni.yaml").Run(); err != nil {
+		return errors.Wrap(err, "failed to create default CNI")
 	}
 
 	// mark success

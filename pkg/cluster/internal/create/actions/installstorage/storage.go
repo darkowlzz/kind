@@ -88,12 +88,20 @@ func addDefaultStorage(logger log.Logger, controlPlane nodes.Node) error {
 		manifest = raw.String()
 	}
 
+	// Copy the templated storage manifest to the node.
+	if err := controlPlane.Command("cp", "/dev/stdin", "/kind/manifests/default-storage.yaml").SetStdin(strings.NewReader(manifest)).Run(); err != nil {
+		return errors.Wrap(err, "failed to write templated storage manifest")
+	}
+
 	// apply the manifest
-	in := strings.NewReader(manifest)
-	cmd := controlPlane.Command(
-		"kubectl",
-		"--kubeconfig=/etc/kubernetes/admin.conf", "apply", "-f", "-",
-	)
-	cmd.SetStdin(in)
-	return cmd.Run()
+	// in := strings.NewReader(manifest)
+	// cmd := controlPlane.Command(
+	// 	"kubectl",
+	// 	"--kubeconfig=/etc/kubernetes/admin.conf", "apply", "-f", "-",
+	// )
+	// cmd.SetStdin(in)
+	// return cmd.Run()
+	return controlPlane.Command(
+		"kubectl", "create", "--kubeconfig=/etc/kubernetes/admin.conf",
+		"-f", "/kind/manifests/default-storage.yaml").Run()
 }
