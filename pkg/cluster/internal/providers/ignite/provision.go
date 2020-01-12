@@ -17,6 +17,9 @@ limitations under the License.
 package ignite
 
 import (
+	"fmt"
+	"time"
+
 	"sigs.k8s.io/kind/pkg/cluster/internal/providers/provider/common"
 	"sigs.k8s.io/kind/pkg/errors"
 	"sigs.k8s.io/kind/pkg/exec"
@@ -53,11 +56,11 @@ func planCreation(cluster string, cfg *config.Cluster) (createVMFuncs []func() e
 						// ContainerPort: common.APIServerInternalPort,
 					},
 				)
-				return createVM(runArgsForNode(node, name, genericArgs))
+				return createVM(name, runArgsForNode(node, name, genericArgs))
 			})
 		case config.WorkerRole:
 			createVMFuncs = append(createVMFuncs, func() error {
-				return createVM(runArgsForNode(node, name, genericArgs))
+				return createVM(name, runArgsForNode(node, name, genericArgs))
 			})
 		default:
 			return nil, errors.Errorf("unknown node role: %q", node.Role)
@@ -66,15 +69,23 @@ func planCreation(cluster string, cfg *config.Cluster) (createVMFuncs []func() e
 	return createVMFuncs, nil
 }
 
-func createVM(args []string) error {
+func createVM(name string, args []string) error {
 	if err := exec.Command("ignite", args...).Run(); err != nil {
 		return errors.Wrap(err, "ignite run error")
+	}
+	// Wait for the VM to start.
+	time.Sleep(3)
+	// Change the VM hostname.
+	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
+		return errors.Wrap(err, "failed to change hostname")
 	}
 	return nil
 }
 
 func commonArgs(cluster string, cfg *config.Cluster) ([]string, error) {
-	args := []string{}
+	args := []string{
+		"--label", fmt.Sprintf("%s=%s", clusterLabelKey, cluster),
+	}
 
 	return args, nil
 }
@@ -86,6 +97,7 @@ func runArgsForNode(node *config.Node, name string, args []string) []string {
 		"--cpus", "1",
 		"--memory", "2GB",
 		"--ssh",
+		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, node.Role),
 		// Add label when ignite supports it.
 	},
 		args...,

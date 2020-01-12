@@ -38,20 +38,19 @@ func (n *node) String() string {
 }
 
 func (n *node) Role() (string, error) {
-	// cmd := exec.Command("ignite", "inspect",
-	// 	n.name,
-	// )
-	// TODO: parse the result and get the role value.
-	// lines, err := exec.OutputLines(cmd)
-	// if err != nil {
-	// 	return "", errors.Wrap(err, "failed to get role for node")
-	// }
-	// if len(lines) != 1 {
-	// 	return "", errors.Errorf()
-	// }
+	cmd := exec.Command("ignite", "inspect", "vm",
+		n.name,
+		"--format", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
+	)
+	lines, err := exec.OutputLines(cmd)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get role for node")
+	}
+	if len(lines) != 1 {
+		return "", errors.Errorf("failed to get role for node: output lines %d != 1", len(lines))
+	}
 
-	// Return control-plane for now. Single node setup only.
-	return "control-plane", nil
+	return lines[0], nil
 }
 
 func (n *node) IP() (ipv4 string, ipv6 string, err error) {
@@ -119,7 +118,6 @@ func (c *nodeCmd) Run() error {
 
 			file, err := ioutil.TempFile("", "kind-file-")
 			if err != nil {
-				fmt.Println("FAILED TO CREATE TEMPORARY FILE:", err)
 				return err
 			}
 			defer os.Remove(file.Name())

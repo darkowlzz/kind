@@ -18,10 +18,13 @@ package ignite
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/kind/pkg/cluster/internal/providers/provider"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
+	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 	"sigs.k8s.io/kind/pkg/errors"
 	"sigs.k8s.io/kind/pkg/exec"
 	"sigs.k8s.io/kind/pkg/internal/apis/config"
@@ -68,19 +71,20 @@ func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Clu
 // ListClusters is part of the providers.Provider interface. It lists all the
 // ignite kind clusters.
 func (p *Provider) ListClusters() ([]string, error) {
-	// cmd := exec.Command("ignite",
-	// 	"ps",
-	// 	"-q",
-	// 	"-a",
-	// 	// Filter for nodes with cluster label.
-	// 	"--filter", "label="+clusterLabelKey,
-	// )
-	// lines, err := exec.OutputLines(cmd)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "failed to list clusters")
-	// }
-	// return sets.NewString(lines...).List(), nil
-	return []string{}, nil
+	cmd := exec.Command("ignite",
+		"ps",
+		"-q",
+		"-a",
+		// Filter for nodes with cluster label.
+		"--filter", "{{.ObjectMeta.Labels}}=~"+clusterLabelKey,
+		// Format to include the cluster name.
+		"--format", fmt.Sprintf(`{{index .ObjectMeta.Labels "%s"}}`, clusterLabelKey),
+	)
+	lines, err := exec.OutputLines(cmd)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list clusters")
+	}
+	return sets.NewString(lines...).List(), nil
 }
 
 // ListNodes is part of the providers.Provider interface. It lists all the nodes
@@ -90,16 +94,16 @@ func (p *Provider) ListNodes(cluster string) ([]nodes.Node, error) {
 		"ps",
 		"-q",
 		"-a",
-		// "--filter", fmt.Sprintf("label=%s=%s", clusterLabelKey, cluster),
+		// Filter for nodes with cluster label.
+		"--filter", fmt.Sprintf(`{{.ObjectMeta.Labels}}=~%s:%s`, clusterLabelKey, cluster),
+		// Format to include the cluster name.
+		"--format", `{{.ObjectMeta.Name}}`,
 	)
 	lines, err := exec.OutputLines(cmd)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list cluster nodes")
 	}
 
-	// if len(lines) > 1 {
-	// 	ret = append(ret, p.node("kind-control-plane"))
-	// }
 	// Convert names to node handles.
 	ret := make([]nodes.Node, 0, len(lines))
 	for _, name := range lines {
@@ -116,9 +120,7 @@ func (p *Provider) DeleteNodes(n []nodes.Node) error {
 	if len(n) == 0 {
 		return nil
 	}
-	// TODO: Parse the node list and delete all the nodes.
 	args := make([]string, 0, len(n)+3) // Allocate once.
-	// TODO: Maybe stop and then remove?
 	args = append(args,
 		"rm",
 		"-f",
@@ -136,9 +138,21 @@ func (p *Provider) DeleteNodes(n []nodes.Node) error {
 // the API Server Endpoint.
 func (p *Provider) GetAPIServerEndpoint(cluster string) (string, error) {
 	// Locate the node that hosts this.
-	// allNodes, err :=
-	// return net.JoinHostPort(), nil
-	return "", nil
+	allNodes, err := p.ListNodes(cluster)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to list nodes")
+	}
+	n, err := nodeutils.APIServerEndpointNode(allNodes)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get api server endpoint")
+	}
+
+	ipv4, _, err := n.IP()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get node IP")
+	}
+
+	return net.JoinHostPort(ipv4, "6443"), nil
 }
 
 func (p *Provider) node(name string) nodes.Node {
