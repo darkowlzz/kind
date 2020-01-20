@@ -79,6 +79,14 @@ func createVM(name string, args []string) error {
 	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
 		return errors.Wrap(err, "failed to change hostname")
 	}
+	// Change machine ID.
+	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
+		return errors.Wrap(err, "failed to change machine ID")
+	}
+	// Enable ip forward.
+	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("echo '1' > /proc/sys/net/ipv4/ip_forward")).Run(); err != nil {
+		return errors.Wrap(err, "failed to enable ip forward")
+	}
 	return nil
 }
 
@@ -96,6 +104,8 @@ func runArgsForNode(node *config.Node, name string, args []string) []string {
 		"--name", name,
 		"--cpus", "1",
 		"--memory", "2GB",
+		"--kernel-image", "darkowlzz/ignite-kernel:5.3",
+		"--size", "10G",
 		"--ssh",
 		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, node.Role),
 		// Add label when ignite supports it.

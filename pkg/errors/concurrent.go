@@ -38,6 +38,15 @@ func UntilErrorConcurrent(funcs []func() error) error {
 	return nil
 }
 
+func UntilErrorSync(funcs []func() error) error {
+	for _, f := range funcs {
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AggregateConcurrent runs fns concurrently, returning a NewAggregate if there are > 1 errors
 func AggregateConcurrent(funcs []func() error) error {
 	// run all fns concurrently

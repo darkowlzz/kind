@@ -23,6 +23,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/errors"
@@ -60,7 +61,15 @@ func KubeVersion(n nodes.Node) (version string, err error) {
 		return "", errors.Wrap(err, "failed to get file")
 	}
 	if len(lines) != 1 {
-		return "", errors.Errorf("file should only be one line, got %d lines", len(lines))
+		fmt.Println("failed to get kube version, retrying...")
+		time.Sleep(1 * time.Second)
+		lines, err := exec.CombinedOutputLines(cmd)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to get file")
+		}
+		if len(lines) != 1 {
+			return "", errors.Errorf("file should only be one line, got %d lines", len(lines))
+		}
 	}
 	return lines[0], nil
 }

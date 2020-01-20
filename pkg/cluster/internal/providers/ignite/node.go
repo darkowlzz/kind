@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/kind/pkg/errors"
 	"sigs.k8s.io/kind/pkg/exec"
@@ -57,7 +58,6 @@ func (n *node) IP() (ipv4 string, ipv6 string, err error) {
 	cmd := exec.Command("ignite", "inspect", "vm", n.name)
 	lines, err := exec.CombinedOutputLines(cmd)
 	res := strings.Join(lines, "")
-	// fmt.Printf("\nINSPECT RESULT: %q", res)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to get vm details")
 	}
@@ -69,13 +69,6 @@ func (n *node) IP() (ipv4 string, ipv6 string, err error) {
 	ipAddresses := status["ipAddresses"].([]interface{})
 	ipAddress := ipAddresses[0].(string)
 
-	// return "", "", errors.New("failed failed failed")
-	// if len(lines) != 1 {
-	// 	return "", "", errors.Errorf("file should only be one line, got %d lines", len(lines))
-	// }
-	// ip := lines[0]
-	// fmt.Printf("\nVM IP %q", ip)
-	// Return local address for single node setup only.
 	return ipAddress, "", nil
 }
 
@@ -139,75 +132,11 @@ func (c *nodeCmd) Run() error {
 		cmdWithArgs = append(cmdWithArgs, c.args...)
 		fullCmd := fmt.Sprintf("%s", strings.Join(cmdWithArgs, " "))
 
-		// fmt.Println("fullCmd:", fullCmd)
-
 		args = append(
 			args,
-			// c.args...,
 			fullCmd,
 		)
-
 	}
-
-	// args := []string{
-	// 	"exec",
-	// }
-	// if c.stdin != nil {
-	// 	args = append(args,
-	// 		"-i",
-	// 	)
-	// }
-	// Set env
-
-	// // Specify the VM.
-	// args = append(
-	// 	args,
-	// 	c.nameOrID,
-	// 	c.command,
-	// )
-
-	// // Ignite exec doesn't accepts STDIN. Read the input, write to a file and
-	// // use that file as source.
-	// // fmt.Println("COMMAND ARGS:", c.args)
-	// containsSTDIN := false
-	// stdinIndex := -1
-	// for i, arg := range c.args {
-	// 	if strings.Contains(arg, "/dev/stdin") {
-	// 		fmt.Println("FOUND STDIN")
-	// 		containsSTDIN = true
-	// 		stdinIndex = i
-	// 	}
-	// }
-	// if containsSTDIN {
-	// 	inputBuf := new(bytes.Buffer)
-	// 	inputBuf.ReadFrom(c.stdin)
-	// 	// fmt.Println("INPUT:", inputBuf.String())
-	// 	cmdcp := exec.Command("ignite", "exec", c.nameOrID, "echo", "-e", inputBuf.String(), ">", "/tmp/cp1")
-	// 	if err := cmdcp.Run(); err != nil {
-	// 		fmt.Println("FAILED TO CREATE TMP COPY FILE:", err)
-	// 		return err
-	// 	}
-	// 	fmt.Println("WRITTEN TO /tmp/cp1")
-
-	// 	c.args[stdinIndex] = "/tmp/cp1"
-
-	// 	time.Sleep(100)
-	// }
-
-	// fmt.Println("FINAL ARGS:", c.args)
-
-	// // Specify the command and command args.
-	// cmdWithArgs := []string{c.command}
-	// cmdWithArgs = append(cmdWithArgs, c.args...)
-	// fullCmd := fmt.Sprintf("%s", strings.Join(cmdWithArgs, " "))
-
-	// fmt.Println("fullCmd:", fullCmd)
-
-	// args = append(
-	// 	args,
-	// 	c.args...,
-	// // fullCmd,
-	// )
 
 	cmd := exec.Command("ignite", args...)
 	if c.stdin != nil {
@@ -219,19 +148,21 @@ func (c *nodeCmd) Run() error {
 	if c.stdout != nil {
 		cmd.SetStdout(c.stdout)
 	}
-	return cmd.Run()
+
+	if err := cmd.Run(); err != nil {
+		fmt.Println("node exec failed, retrying...:", err)
+		time.Sleep(1 * time.Second)
+		return cmd.Run()
+	}
+
+	// return cmd.Run()
+	return nil
 }
 
 func (c *nodeCmd) Start() error {
 	args := []string{
 		"exec",
 	}
-	// if c.stdin != nil {
-	// 	args = append(args,
-	// 		"-i",
-	// 	)
-	// }
-	// Set env
 
 	// Specify the VM and command.
 	// Specify the VM and command.
