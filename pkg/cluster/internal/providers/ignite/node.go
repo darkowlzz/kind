@@ -31,7 +31,8 @@ import (
 )
 
 type node struct {
-	name string
+	name       string
+	binaryPath string
 }
 
 func (n *node) String() string {
@@ -39,7 +40,7 @@ func (n *node) String() string {
 }
 
 func (n *node) Role() (string, error) {
-	cmd := exec.Command("ignite", "inspect", "vm",
+	cmd := exec.Command(n.binaryPath, "inspect", "vm",
 		n.name,
 		"--format", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
 	)
@@ -55,7 +56,7 @@ func (n *node) Role() (string, error) {
 }
 
 func (n *node) IP() (ipv4 string, ipv6 string, err error) {
-	cmd := exec.Command("ignite", "inspect", "vm", n.name)
+	cmd := exec.Command(n.binaryPath, "inspect", "vm", n.name)
 	lines, err := exec.CombinedOutputLines(cmd)
 	res := strings.Join(lines, "")
 	if err != nil {
@@ -74,21 +75,23 @@ func (n *node) IP() (ipv4 string, ipv6 string, err error) {
 
 func (n *node) Command(command string, args ...string) exec.Cmd {
 	return &nodeCmd{
-		nameOrID: n.name,
-		command:  command,
-		args:     args,
+		nameOrID:   n.name,
+		command:    command,
+		args:       args,
+		binaryPath: n.binaryPath,
 	}
 }
 
 // nodeCmd implements exec.Cmd for ignite nodes.
 type nodeCmd struct {
-	nameOrID string // The VM name or ID
-	command  string
-	args     []string
-	env      []string
-	stdin    io.Reader
-	stdout   io.Writer
-	stderr   io.Writer
+	nameOrID   string // The VM name or ID
+	command    string
+	args       []string
+	env        []string
+	stdin      io.Reader
+	stdout     io.Writer
+	stderr     io.Writer
+	binaryPath string
 }
 
 func (c *nodeCmd) Run() error {
@@ -138,7 +141,7 @@ func (c *nodeCmd) Run() error {
 		)
 	}
 
-	cmd := exec.Command("ignite", args...)
+	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
 		cmd.SetStdin(c.stdin)
 	}
@@ -175,7 +178,7 @@ func (c *nodeCmd) Start() error {
 		args,
 		c.args...,
 	)
-	cmd := exec.Command("ignite", args...)
+	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
 		cmd.SetStdin(c.stdin)
 	}

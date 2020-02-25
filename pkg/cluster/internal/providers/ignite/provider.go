@@ -33,16 +33,18 @@ import (
 )
 
 // NewProvider returns a new provider based on executing `ignite ...`
-func NewProvider(logger log.Logger) provider.Provider {
+func NewProvider(binaryPath string, logger log.Logger) provider.Provider {
 	return &Provider{
-		logger: logger,
+		logger:     logger,
+		BinaryPath: binaryPath,
 	}
 }
 
 // Provider implements provider.Provider
 // see NewProvider
 type Provider struct {
-	logger log.Logger
+	logger     log.Logger
+	BinaryPath string
 }
 
 // Provision is part of the providers.Provider interface. It provisions a
@@ -50,7 +52,7 @@ type Provider struct {
 func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Cluster) (err error) {
 	// TODO: validate cfg
 	// Ensure node images are pulled before actual provisioning.
-	ensureNodeImages(p.logger, status, cfg)
+	ensureNodeImages(p.BinaryPath, p.logger, status, cfg)
 
 	// Actually provision the cluster.
 	icons := strings.Repeat("📦 ", len(cfg.Nodes))
@@ -58,7 +60,7 @@ func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Clu
 	defer func() { status.End(err == nil) }()
 
 	// Plan creating the VMs.
-	createVMFuncs, err := planCreation(cluster, cfg)
+	createVMFuncs, err := planCreation(p.BinaryPath, cluster, cfg)
 	if err != nil {
 		return err
 	}
@@ -72,7 +74,7 @@ func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Clu
 // ListClusters is part of the providers.Provider interface. It lists all the
 // ignite kind clusters.
 func (p *Provider) ListClusters() ([]string, error) {
-	cmd := exec.Command("ignite",
+	cmd := exec.Command(p.BinaryPath,
 		"ps",
 		"-q",
 		"-a",
@@ -91,7 +93,7 @@ func (p *Provider) ListClusters() ([]string, error) {
 // ListNodes is part of the providers.Provider interface. It lists all the nodes
 // of a given ignite kind cluster.
 func (p *Provider) ListNodes(cluster string) ([]nodes.Node, error) {
-	cmd := exec.Command("ignite",
+	cmd := exec.Command(p.BinaryPath,
 		"ps",
 		"-q",
 		"-a",
@@ -129,7 +131,7 @@ func (p *Provider) DeleteNodes(n []nodes.Node) error {
 	for _, node := range n {
 		args = append(args, node.String())
 	}
-	if err := exec.Command("ignite", args...).Run(); err != nil {
+	if err := exec.Command(p.BinaryPath, args...).Run(); err != nil {
 		return errors.Wrap(err, "failed to delete nodes")
 	}
 	return nil
@@ -158,6 +160,7 @@ func (p *Provider) GetAPIServerEndpoint(cluster string) (string, error) {
 
 func (p *Provider) node(name string) nodes.Node {
 	return &node{
-		name: name,
+		name:       name,
+		binaryPath: p.BinaryPath,
 	}
 }
