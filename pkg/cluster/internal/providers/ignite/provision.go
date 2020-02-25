@@ -27,7 +27,7 @@ import (
 )
 
 // planCreation creates a slice of funcs that will create the VMs.
-func planCreation(cluster string, cfg *config.Cluster) (createVMFuncs []func() error, err error) {
+func planCreation(binaryPath string, cluster string, cfg *config.Cluster) (createVMFuncs []func() error, err error) {
 	// These apply to all VM creation.
 	nodeNamer := common.MakeNodeNamer(cluster)
 	genericArgs, err := commonArgs(cluster, cfg)
@@ -56,11 +56,11 @@ func planCreation(cluster string, cfg *config.Cluster) (createVMFuncs []func() e
 						// ContainerPort: common.APIServerInternalPort,
 					},
 				)
-				return createVM(name, runArgsForNode(node, name, genericArgs))
+				return createVM(binaryPath, name, runArgsForNode(node, name, genericArgs))
 			})
 		case config.WorkerRole:
 			createVMFuncs = append(createVMFuncs, func() error {
-				return createVM(name, runArgsForNode(node, name, genericArgs))
+				return createVM(binaryPath, name, runArgsForNode(node, name, genericArgs))
 			})
 		default:
 			return nil, errors.Errorf("unknown node role: %q", node.Role)
@@ -69,22 +69,22 @@ func planCreation(cluster string, cfg *config.Cluster) (createVMFuncs []func() e
 	return createVMFuncs, nil
 }
 
-func createVM(name string, args []string) error {
-	if err := exec.Command("ignite", args...).Run(); err != nil {
+func createVM(binaryPath string, name string, args []string) error {
+	if err := exec.Command(binaryPath, args...).Run(); err != nil {
 		return errors.Wrap(err, "ignite run error")
 	}
 	// Wait for the VM to start.
 	time.Sleep(3)
 	// Change the VM hostname.
-	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
 		return errors.Wrap(err, "failed to change hostname")
 	}
 	// Change machine ID.
-	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
 		return errors.Wrap(err, "failed to change machine ID")
 	}
 	// Enable ip forward.
-	if err := exec.Command("ignite", "exec", name, fmt.Sprintf("echo '1' > /proc/sys/net/ipv4/ip_forward")).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("echo '1' > /proc/sys/net/ipv4/ip_forward")).Run(); err != nil {
 		return errors.Wrap(err, "failed to enable ip forward")
 	}
 	return nil

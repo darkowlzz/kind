@@ -175,7 +175,7 @@ func (c *BuildContext) Build() (err error) {
 	if err != nil {
 		return err
 	}
-	// defer os.RemoveAll(buildDir)
+	defer os.RemoveAll(buildDir)
 
 	c.logger.V(0).Infof("Building node image in: %s", buildDir)
 

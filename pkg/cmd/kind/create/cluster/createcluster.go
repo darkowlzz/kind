@@ -38,7 +38,7 @@ type flagpole struct {
 	Retain     bool
 	Wait       time.Duration
 	Kubeconfig string
-	Ignite     bool
+	Ignite     string
 }
 
 // NewCommand returns a new cobra.Command for cluster creation
@@ -59,16 +59,16 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVar(&flags.Retain, "retain", false, "retain nodes for debugging when cluster creation fails")
 	cmd.Flags().DurationVar(&flags.Wait, "wait", time.Duration(0), "Wait for control plane node to be ready (default 0s)")
 	cmd.Flags().StringVar(&flags.Kubeconfig, "kubeconfig", "", "sets kubeconfig path instead of $KUBECONFIG or $HOME/.kube/config")
-	cmd.Flags().BoolVar(&flags.Ignite, "ignite", false, "create an ignite cluster")
+	cmd.Flags().StringVar(&flags.Ignite, "ignite", "", "Path to ignite binary")
 	return cmd
 }
 
 func runE(logger log.Logger, streams cmd.IOStreams, flags *flagpole) error {
 	provider := &cluster.Provider{}
-	if flags.Ignite {
+	if flags.Ignite != "" {
 		provider = cluster.NewProvider(
 			cluster.ProviderWithLogger(logger),
-			cluster.ProviderWithIgnite(true),
+			cluster.ProviderWithIgnite(flags.Ignite),
 		)
 	} else {
 		provider = cluster.NewProvider(

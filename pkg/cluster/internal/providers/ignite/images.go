@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 )
 
-func ensureNodeImages(logger log.Logger, status *cli.Status, cfg *config.Cluster) {
+func ensureNodeImages(binaryPath string, logger log.Logger, status *cli.Status, cfg *config.Cluster) {
 	// Pull each required image.
 	for _, image := range common.RequiredNodeImages(cfg).List() {
 		// Prints user friendly message.
@@ -41,26 +41,26 @@ func ensureNodeImages(logger log.Logger, status *cli.Status, cfg *config.Cluster
 		// Attempt to explicitly pull the image if it doesn't exist locally.
 		// We don't care if this errors, we'll still try to run which also
 		// pulls.
-		_, _ = pullIfNotPresent(logger, image, 4)
+		_, _ = pullIfNotPresent(binaryPath, logger, image, 4)
 	}
 }
 
-func pullIfNotPresent(logger log.Logger, image string, retries int) (pulled bool, err error) {
+func pullIfNotPresent(binaryPath string, logger log.Logger, image string, retries int) (pulled bool, err error) {
 	// Ignite doesn't provide any way to filter or inspect images. Pull the
 	// image always for now.
 	// cmd := exec.Command("ignite", "image", "import")
 
-	return true, pull(logger, image, retries)
+	return true, pull(binaryPath, logger, image, retries)
 }
 
-func pull(logger log.Logger, image string, retries int) error {
+func pull(binaryPath string, logger log.Logger, image string, retries int) error {
 	logger.V(1).Infof("Pulling image: %s ...", image)
-	err := exec.Command("ignite", "image", "import").Run()
+	err := exec.Command(binaryPath, "image", "import").Run()
 	if err != nil {
 		for i := 0; i < retries; i++ {
 			time.Sleep(time.Second * time.Duration(i+1))
 			logger.V(1).Infof("Trying again to pull image: %q ... %v", image, err)
-			err = exec.Command("ignite", "image", "import", image).Run()
+			err = exec.Command(binaryPath, "image", "import", image).Run()
 			if err == nil {
 				break
 			}

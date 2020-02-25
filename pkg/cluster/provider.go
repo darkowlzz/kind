@@ -40,7 +40,7 @@ const DefaultName = constants.DefaultClusterName
 type Provider struct {
 	provider internalprovider.Provider
 	logger   log.Logger
-	ignite   bool
+	ignite   string
 }
 
 // NewProvider returns a new provider based on the supplied options
@@ -60,8 +60,8 @@ func NewProvider(options ...ProviderOption) *Provider {
 		o.apply(p)
 	}
 	if p.provider == nil {
-		if p.ignite {
-			p.provider = ignite.NewProvider(p.logger)
+		if p.ignite != "" {
+			p.provider = ignite.NewProvider(p.ignite, p.logger)
 		} else {
 			p.provider = docker.NewProvider(p.logger)
 		}
@@ -96,7 +96,7 @@ func (a providerIgniteOption) apply(p *Provider) {
 }
 
 // ProviderWithIgnite configures the provider to use ignite.
-func ProviderWithIgnite(ignite bool) ProviderOption {
+func ProviderWithIgnite(ignite string) ProviderOption {
 	return providerIgniteOption(func(p *Provider) {
 		p.ignite = ignite
 	})
