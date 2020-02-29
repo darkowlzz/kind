@@ -25,7 +25,16 @@ NOTE: we have customized it in the following ways:
 - install as the default storage class
 */
 
-var defaultStorageImages = []string{"rancher/local-path-provisioner:v0.0.11", "k8s.gcr.io/debian-base:v2.0.0"}
+var defaultStorageImages = []string{"rancher/local-path-provisioner:v0.0.11", "k8s.gcr.io/debian-base:v2.0.0",
+	"storageos/node:1.5.3",
+	"storageos/init:1.0.0",
+	"quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1",
+	"quay.io/k8scsi/csi-node-driver-registrar:v1.2.0",
+	"storageos/csi-provisioner:v1.4.0",
+	"storageos/csi-provisioner:1.5.4aa560e",
+	"quay.io/k8scsi/csi-attacher:v2.0.0",
+	"quay.io/k8scsi/livenessprobe:v1.1.0",
+}
 
 const defaultStorageManifest = `
 # kind customized https://github.com/rancher/local-path-provisioner manifest
