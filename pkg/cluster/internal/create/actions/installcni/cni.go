@@ -95,9 +95,14 @@ func (a *action) Execute(ctx *actions.ActionContext) error {
 	// ).SetStdin(strings.NewReader(manifest)).Run(); err != nil {
 	// 	return errors.Wrap(err, "failed to apply overlay network")
 	// }
+	// if err := node.Command(
+	// 	"kubectl", "create", "--kubeconfig=/etc/kubernetes/admin.conf",
+	// 	"-f", "/kind/manifests/default-cni.yaml").Run(); err != nil {
+	// 	return errors.Wrap(err, "failed to create default CNI")
+	// }
 	if err := node.Command(
 		"kubectl", "create", "--kubeconfig=/etc/kubernetes/admin.conf",
-		"-f", "/kind/manifests/default-cni.yaml").Run(); err != nil {
+		"-f", "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')").Run(); err != nil {
 		return errors.Wrap(err, "failed to create default CNI")
 	}
 

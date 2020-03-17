@@ -41,7 +41,7 @@ func (n *node) String() string {
 
 func (n *node) Role() (string, error) {
 	cmd := exec.Command(n.binaryPath, "inspect", "vm",
-		n.name,
+		n.name, "--runtime=docker", "--network-plugin=docker-bridge",
 		"--format", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
 	)
 	lines, err := exec.OutputLines(cmd)
@@ -56,7 +56,7 @@ func (n *node) Role() (string, error) {
 }
 
 func (n *node) IP() (ipv4 string, ipv6 string, err error) {
-	cmd := exec.Command(n.binaryPath, "inspect", "vm", n.name)
+	cmd := exec.Command(n.binaryPath, "inspect", "vm", n.name, "--runtime=docker", "--network-plugin=docker-bridge")
 	lines, err := exec.CombinedOutputLines(cmd)
 	res := strings.Join(lines, "")
 	if err != nil {
@@ -141,6 +141,8 @@ func (c *nodeCmd) Run() error {
 		)
 	}
 
+	args = append(args, "--runtime=docker", "--network-plugin=docker-bridge")
+
 	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
 		cmd.SetStdin(c.stdin)
@@ -177,6 +179,10 @@ func (c *nodeCmd) Start() error {
 	args = append(
 		args,
 		c.args...,
+	)
+	args = append(
+		args,
+		"--runtime=docker", "--network-plugin=docker-bridge",
 	)
 	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
