@@ -73,6 +73,8 @@ RUN echo "Ensuring scripts are executable ..." \
       openssh-server net-tools iputils-ping dbus wget vim-tiny haveged \
  && echo "Configuring haveged ..." \
     && update-rc.d haveged defaults \
+ && echo "Enable IPv4 ip forward ..." \
+    && echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf \
  && echo "Installing containerd ..." \
     && export ARCH=$(dpkg --print-architecture | sed 's/ppc64el/ppc64le/' | sed 's/armhf/arm/') \
     && export CONTAINERD_BASE_URL="https://github.com/kind-ci/containerd-nightlies/releases/download/containerd-${CONTAINERD_VERSION#v}" \
