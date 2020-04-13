@@ -83,10 +83,6 @@ func createVM(binaryPath string, name string, args []string) error {
 	if err := exec.Command(binaryPath, "--runtime=docker", "--network-plugin=docker-bridge", "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
 		return errors.Wrap(err, "failed to change machine ID")
 	}
-	// Enable ip forward.
-	if err := exec.Command(binaryPath, "--runtime=docker", "--network-plugin=docker-bridge", "exec", name, fmt.Sprintf("echo '1' > /proc/sys/net/ipv4/ip_forward")).Run(); err != nil {
-		return errors.Wrap(err, "failed to enable ip forward")
-	}
 	return nil
 }
 
