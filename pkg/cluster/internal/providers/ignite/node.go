@@ -17,12 +17,9 @@ limitations under the License.
 package ignite
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -42,7 +39,7 @@ func (n *node) String() string {
 func (n *node) Role() (string, error) {
 	cmd := exec.Command(n.binaryPath, "inspect", "vm",
 		n.name, "--runtime=docker", "--network-plugin=docker-bridge",
-		"--format", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
+		"--template", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
 	)
 	lines, err := exec.OutputLines(cmd)
 	if err != nil {
@@ -95,53 +92,32 @@ type nodeCmd struct {
 }
 
 func (c *nodeCmd) Run() error {
-	args := []string{}
-
-	if c.command == "cp" {
-		args = append(args, c.command, c.nameOrID)
-
-		containsSTDIN := false
-		stdinIndex := -1
-		for i, arg := range c.args {
-			if strings.Contains(arg, "/dev/stdin") {
-				containsSTDIN = true
-				stdinIndex = i
-			}
-		}
-		if containsSTDIN {
-			inputBuf := new(bytes.Buffer)
-			inputBuf.ReadFrom(c.stdin)
-
-			file, err := ioutil.TempFile("", "kind-file-")
-			if err != nil {
-				return err
-			}
-			defer os.Remove(file.Name())
-
-			file.Write(inputBuf.Bytes())
-
-			c.args[stdinIndex] = file.Name()
-		}
-
-		args = append(
-			args,
-			c.args...,
-		)
-	} else {
-		args = append(args, "exec", c.nameOrID)
-
-		// Specify the command and command args.
-		cmdWithArgs := []string{c.command}
-		cmdWithArgs = append(cmdWithArgs, c.args...)
-		fullCmd := fmt.Sprintf("%s", strings.Join(cmdWithArgs, " "))
-
-		args = append(
-			args,
-			fullCmd,
-		)
+	args := []string{
+		"--runtime=docker",
+		"--network-plugin=docker-bridge",
+		"exec",
 	}
 
-	args = append(args, "--runtime=docker", "--network-plugin=docker-bridge")
+	// set env
+	for _, env := range c.env {
+		args = append(args, "-e", env)
+	}
+	// specify the VM and command, after this everything will be
+	// args the command in the VM rather than to ignite.
+	args = append(
+		args,
+		c.nameOrID, // ... against the VM
+	)
+
+	// Specify the command and command args.
+	cmdWithArgs := []string{c.command}
+	cmdWithArgs = append(cmdWithArgs, c.args...)
+	fullCmd := fmt.Sprintf("%s", strings.Join(cmdWithArgs, " "))
+
+	args = append(
+		args,
+		fullCmd,
+	)
 
 	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
@@ -166,24 +142,31 @@ func (c *nodeCmd) Run() error {
 
 func (c *nodeCmd) Start() error {
 	args := []string{
+		"--runtime=docker",
+		"--network-plugin=docker-bridge",
 		"exec",
 	}
+	// set env
+	for _, env := range c.env {
+		args = append(args, "-e", env)
+	}
 
-	// Specify the VM and command.
 	// Specify the VM and command.
 	args = append(
 		args,
 		c.nameOrID,
-		c.command,
 	)
+
+	// Specify the command and command args.
+	cmdWithArgs := []string{c.command}
+	cmdWithArgs = append(cmdWithArgs, c.args...)
+	fullCmd := fmt.Sprintf("%s", strings.Join(cmdWithArgs, " "))
+
 	args = append(
 		args,
-		c.args...,
+		fullCmd,
 	)
-	args = append(
-		args,
-		"--runtime=docker", "--network-plugin=docker-bridge",
-	)
+
 	cmd := exec.Command(c.binaryPath, args...)
 	if c.stdin != nil {
 		cmd.SetStdin(c.stdin)

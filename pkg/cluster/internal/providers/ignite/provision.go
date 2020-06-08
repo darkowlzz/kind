@@ -100,7 +100,6 @@ func runArgsForNode(node *config.Node, name string, args []string) []string {
 		"--name", name,
 		"--cpus", "1",
 		"--memory", "2GB",
-		"--kernel-image", "darkowlzz/ignite-kernel:5.3",
 		"--size", "10G",
 		"--ssh",
 		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, node.Role),

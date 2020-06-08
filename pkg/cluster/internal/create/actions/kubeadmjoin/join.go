@@ -107,8 +107,7 @@ func joinWorkers(
 			return runKubeadmJoin(ctx.Logger, node)
 		})
 	}
-	// if err := errors.UntilErrorConcurrent(fns); err != nil {
-	if err := errors.UntilErrorSync(fns); err != nil {
+	if err := errors.UntilErrorConcurrent(fns); err != nil {
 		return err
 	}
 

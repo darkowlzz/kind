@@ -66,9 +66,7 @@ func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Clu
 	}
 
 	// Actually create nodes.
-	// return errors.UntilErrorConcurrent()
-	// return errors.UntilErrorConcurrent(createVMFuncs)
-	return errors.UntilErrorSync(createVMFuncs)
+	return errors.UntilErrorConcurrent(createVMFuncs)
 }
 
 // ListClusters is part of the providers.Provider interface. It lists all the
@@ -82,7 +80,7 @@ func (p *Provider) ListClusters() ([]string, error) {
 		// Filter for nodes with cluster label.
 		"--filter", "{{.ObjectMeta.Labels}}=~"+clusterLabelKey,
 		// Format to include the cluster name.
-		"--format", fmt.Sprintf(`{{index .ObjectMeta.Labels "%s"}}`, clusterLabelKey),
+		"--template", fmt.Sprintf(`{{index .ObjectMeta.Labels "%s"}}`, clusterLabelKey),
 	)
 	lines, err := exec.OutputLines(cmd)
 	if err != nil {
@@ -102,7 +100,7 @@ func (p *Provider) ListNodes(cluster string) ([]nodes.Node, error) {
 		// Filter for nodes with cluster label.
 		"--filter", fmt.Sprintf(`{{.ObjectMeta.Labels}}=~%s:%s`, clusterLabelKey, cluster),
 		// Format to include the cluster name.
-		"--format", `{{.ObjectMeta.Name}}`,
+		"--template", `{{.ObjectMeta.Name}}`,
 	)
 	lines, err := exec.OutputLines(cmd)
 	if err != nil {
