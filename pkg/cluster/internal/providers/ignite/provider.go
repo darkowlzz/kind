@@ -76,7 +76,6 @@ func (p *Provider) ListClusters() ([]string, error) {
 		"ps",
 		"-q",
 		"-a",
-		"--runtime=docker", "--network-plugin=docker-bridge",
 		// Filter for nodes with cluster label.
 		"--filter", "{{.ObjectMeta.Labels}}=~"+clusterLabelKey,
 		// Format to include the cluster name.
@@ -96,7 +95,6 @@ func (p *Provider) ListNodes(cluster string) ([]nodes.Node, error) {
 		"ps",
 		"-q",
 		"-a",
-		"--runtime=docker", "--network-plugin=docker-bridge",
 		// Filter for nodes with cluster label.
 		"--filter", fmt.Sprintf(`{{.ObjectMeta.Labels}}=~%s:%s`, clusterLabelKey, cluster),
 		// Format to include the cluster name.
@@ -124,7 +122,6 @@ func (p *Provider) DeleteNodes(n []nodes.Node) error {
 		return nil
 	}
 	args := make([]string, 0, len(n)+3) // Allocate once.
-	args = append(args, "--runtime=docker", "--network-plugin=docker-bridge")
 	args = append(args,
 		"rm",
 		"-f",

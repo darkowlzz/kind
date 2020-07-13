@@ -76,11 +76,11 @@ func createVM(binaryPath string, name string, args []string) error {
 	// Wait for the VM to start.
 	time.Sleep(3)
 	// Change the VM hostname.
-	if err := exec.Command(binaryPath, "--runtime=docker", "--network-plugin=docker-bridge", "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("hostnamectl set-hostname %s", name)).Run(); err != nil {
 		return errors.Wrap(err, "failed to change hostname")
 	}
 	// Change machine ID.
-	if err := exec.Command(binaryPath, "--runtime=docker", "--network-plugin=docker-bridge", "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
 		return errors.Wrap(err, "failed to change machine ID")
 	}
 	return nil
@@ -98,12 +98,8 @@ func runArgsForNode(node *config.Node, name string, args []string) []string {
 	args = append([]string{
 		"run",
 		"--name", name,
-		"--cpus", "1",
-		"--memory", "2GB",
-		"--size", "10G",
 		"--ssh",
 		"--label", fmt.Sprintf("%s=%s", nodeRoleLabelKey, node.Role),
-		"--runtime=docker", "--network-plugin=docker-bridge",
 		// Add label when ignite supports it.
 	},
 		args...,

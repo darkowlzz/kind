@@ -55,12 +55,12 @@ func pullIfNotPresent(binaryPath string, logger log.Logger, image string, retrie
 
 func pull(binaryPath string, logger log.Logger, image string, retries int) error {
 	logger.V(1).Infof("Pulling image: %s ...", image)
-	err := exec.Command(binaryPath, "image", "import", "--runtime=docker", "--network-plugin=docker-bridge").Run()
+	err := exec.Command(binaryPath, "image", "import").Run()
 	if err != nil {
 		for i := 0; i < retries; i++ {
 			time.Sleep(time.Second * time.Duration(i+1))
 			logger.V(1).Infof("Trying again to pull image: %q ... %v", image, err)
-			err = exec.Command(binaryPath, "image", "import", image, "--runtime=docker", "--network-plugin=docker-bridge").Run()
+			err = exec.Command(binaryPath, "image", "import", image).Run()
 			if err == nil {
 				break
 			}

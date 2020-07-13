@@ -38,7 +38,7 @@ func (n *node) String() string {
 
 func (n *node) Role() (string, error) {
 	cmd := exec.Command(n.binaryPath, "inspect", "vm",
-		n.name, "--runtime=docker", "--network-plugin=docker-bridge",
+		n.name,
 		"--template", fmt.Sprintf(`{{ index .ObjectMeta.Labels "%s"}}`, nodeRoleLabelKey),
 	)
 	lines, err := exec.OutputLines(cmd)
@@ -53,7 +53,7 @@ func (n *node) Role() (string, error) {
 }
 
 func (n *node) IP() (ipv4 string, ipv6 string, err error) {
-	cmd := exec.Command(n.binaryPath, "inspect", "vm", n.name, "--runtime=docker", "--network-plugin=docker-bridge")
+	cmd := exec.Command(n.binaryPath, "inspect", "vm", n.name)
 	lines, err := exec.CombinedOutputLines(cmd)
 	res := strings.Join(lines, "")
 	if err != nil {
@@ -93,8 +93,6 @@ type nodeCmd struct {
 
 func (c *nodeCmd) Run() error {
 	args := []string{
-		"--runtime=docker",
-		"--network-plugin=docker-bridge",
 		"exec",
 	}
 
@@ -142,8 +140,6 @@ func (c *nodeCmd) Run() error {
 
 func (c *nodeCmd) Start() error {
 	args := []string{
-		"--runtime=docker",
-		"--network-plugin=docker-bridge",
 		"exec",
 	}
 	// set env
