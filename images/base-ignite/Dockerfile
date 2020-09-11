@@ -24,11 +24,11 @@ FROM weaveworks/ignite-ubuntu:latest
 
 # Configure containerd and runc binaries from kind-ci/containerd-nightlies repository
 # The repository contains latest stable releases and nightlies built for multiple architectures
-ARG CONTAINERD_VERSION="v1.3.2"
+ARG CONTAINERD_VERSION="v1.4.0"
 # Configure CNI binaries from upstream
-ARG CNI_VERSION="v0.8.3"
+ARG CNI_VERSION="v0.8.7"
 # Configure crictl binary from upstream
-ARG CRICTL_VERSION="v1.17.0"
+ARG CRICTL_VERSION="v1.18.0"
 
 # copy in static files (configs, scripts)
 COPY files/ /
@@ -68,8 +68,9 @@ RUN echo "Ensuring scripts are executable ..." \
     && DEBIAN_FRONTEND=noninteractive clean-install \
       systemd \
       conntrack iptables iproute2 ethtool socat util-linux mount ebtables udev kmod \
-      libseccomp2 \
+      libseccomp2 pigz \
       bash ca-certificates curl rsync \
+      nfs-common \
       openssh-server net-tools iputils-ping dbus wget vim-tiny haveged \
  && echo "Configuring haveged ..." \
     && update-rc.d haveged defaults \
