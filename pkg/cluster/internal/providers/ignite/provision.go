@@ -80,7 +80,7 @@ func createVM(binaryPath string, name string, args []string) error {
 		return errors.Wrap(err, "failed to change hostname")
 	}
 	// Change machine ID.
-	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("rm -f /etc/machine-id && systemd-machine-id-setup")).Run(); err != nil {
+	if err := exec.Command(binaryPath, "exec", name, fmt.Sprintf("rm -f /etc/machine-id /var/lib/dbus/machine-id && systemd-machine-id-setup")).Run(); err != nil {
 		return errors.Wrap(err, "failed to change machine ID")
 	}
 	return nil
