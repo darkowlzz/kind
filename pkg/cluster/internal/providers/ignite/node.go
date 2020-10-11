@@ -64,7 +64,8 @@ func (n *node) IP() (ipv4 string, ipv6 string, err error) {
 	json.Unmarshal([]byte(res), &result)
 
 	status := result["status"].(map[string]interface{})
-	ipAddresses := status["ipAddresses"].([]interface{})
+	network := status["network"].(map[string]interface{})
+	ipAddresses := network["ipAddresses"].([]interface{})
 	ipAddress := ipAddresses[0].(string)
 
 	return ipAddress, "", nil
