@@ -120,7 +120,8 @@ func (a *Action) Execute(ctx *actions.ActionContext) error {
 	}
 
 	// Create the kubeadm config in all nodes concurrently
-	if err := errors.UntilErrorConcurrent(fns); err != nil {
+	// if err := errors.UntilErrorConcurrent(fns); err != nil {
+	if err := errors.UntilErrorSync(fns); err != nil {
 		return err
 	}
 
@@ -156,7 +157,8 @@ func (a *Action) Execute(ctx *actions.ActionContext) error {
 				return nil
 			}
 		}
-		if err := errors.UntilErrorConcurrent(fns); err != nil {
+		// if err := errors.UntilErrorConcurrent(fns); err != nil {
+		if err := errors.UntilErrorSync(fns); err != nil {
 			return err
 		}
 	}

@@ -66,7 +66,8 @@ func (p *Provider) Provision(status *cli.Status, cluster string, cfg *config.Clu
 	}
 
 	// Actually create nodes.
-	return errors.UntilErrorConcurrent(createVMFuncs)
+	// return errors.UntilErrorConcurrent(createVMFuncs)
+	return errors.UntilErrorSync(createVMFuncs)
 }
 
 // ListClusters is part of the providers.Provider interface. It lists all the
