@@ -35,8 +35,9 @@ import (
 )
 
 type flagpole struct {
-	Name  string
-	Nodes []string
+	Name   string
+	Nodes  []string
+	Ignite string
 }
 
 // NewCommand returns a new cobra.Command for loading an image into a cluster
@@ -68,12 +69,14 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 		nil,
 		"comma separated list of nodes to load images into",
 	)
+	cmd.Flags().StringVar(&flags.Ignite, "ignite", "", "Path to ignite binary")
 	return cmd
 }
 
 func runE(logger log.Logger, flags *flagpole, args []string) error {
 	provider := cluster.NewProvider(
 		cluster.ProviderWithLogger(logger),
+		cluster.ProviderWithIgnite(flags.Ignite),
 	)
 
 	// Check that the image exists locally and gets its ID, if not return error

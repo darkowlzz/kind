@@ -28,7 +28,8 @@ import (
 )
 
 type flagpole struct {
-	Name string
+	Name   string
+	Ignite string
 }
 
 // NewCommand returns a new cobra.Command for getting the list of nodes for a given cluster
@@ -49,6 +50,7 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 		cluster.DefaultName,
 		"the cluster context name",
 	)
+	cmd.Flags().StringVar(&flags.Ignite, "ignite", "", "Path to ignite binary")
 	return cmd
 }
 
@@ -56,6 +58,7 @@ func runE(logger log.Logger, streams cmd.IOStreams, flags *flagpole) error {
 	// List nodes by cluster context name
 	provider := cluster.NewProvider(
 		cluster.ProviderWithLogger(logger),
+		cluster.ProviderWithIgnite(flags.Ignite),
 	)
 	n, err := provider.ListNodes(flags.Name)
 	if err != nil {

@@ -27,8 +27,13 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 )
 
+type flagpole struct {
+	Ignite string
+}
+
 // NewCommand returns a new cobra.Command for getting the list of clusters
 func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
+	flags := &flagpole{}
 	cmd := &cobra.Command{
 		Args: cobra.NoArgs,
 		// TODO(bentheelder): more detailed usage
@@ -36,15 +41,17 @@ func NewCommand(logger log.Logger, streams cmd.IOStreams) *cobra.Command {
 		Short: "lists existing kind clusters by their name",
 		Long:  "lists existing kind clusters by their name",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runE(logger, streams)
+			return runE(logger, streams, flags)
 		},
 	}
+	cmd.Flags().StringVar(&flags.Ignite, "ignite", "", "Path to ignite binary")
 	return cmd
 }
 
-func runE(logger log.Logger, streams cmd.IOStreams) error {
+func runE(logger log.Logger, streams cmd.IOStreams, flags *flagpole) error {
 	provider := cluster.NewProvider(
 		cluster.ProviderWithLogger(logger),
+		cluster.ProviderWithIgnite(flags.Ignite),
 	)
 	clusters, err := provider.List()
 	if err != nil {
